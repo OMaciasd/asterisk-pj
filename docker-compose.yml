@@ -1,0 +1,79 @@
+services:
+  asterisk:
+    image: andrius/asterisk
+    container_name: asterisk
+    volumes:
+      - ./asterisk_config:/etc/asterisk:ro
+      - ./asterisk_logs:/var/log/asterisk
+    secrets:
+      - grafana_user
+      - grafana_password
+    networks:
+      - voip-net
+    stdin_open: true
+    tty: true
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep asterisk || exit 1"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - "192.168.18.183:9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - voip-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://192.168.18.183:9090/-/healthy || exit 1"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "192.168.18.183:3000:3000"
+    secrets:
+      - grafana_user
+      - grafana_password
+    volumes:
+      - ./grafana_data:/var/lib/grafana
+      - ./provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_password
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://192.168.18.183:3000 || exit 1"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+networks:
+  voip-net:
+    driver: bridge
+    internal: true
+
+secrets:
+  grafana_user:
+    file: ./secrets/grafana_user
+  grafana_password:
+    file: ./secrets/grafana_password

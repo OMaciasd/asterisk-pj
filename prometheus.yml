@@ -1,0 +1,12 @@
+scrape_configs:
+  - job_name: 'asterisk'
+    static_configs:
+      - targets: ['asterisk-exporter:9115']  # Exporter de Asterisk en el puerto 9115
+
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']  # Asumiendo que Grafana tiene métricas expuestas, ajusta según corresponda
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']  # Prometheus scrapeándose a sí mismo
